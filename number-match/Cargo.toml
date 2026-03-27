@@ -3,18 +3,17 @@ name = "number-match"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-
 [dependencies]
-wasm-bindgen = "0.2"
+yew = { version = "0.21", features = ["csr"] }
+gloo-timers = "0.3"
+web-sys = { version = "0.3", features = ["Storage", "Window", "HtmlElement"] }
 js-sys = "0.3"
+wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 getrandom = { version = "0.3", features = ["wasm_js"] }
+wasm-logger = "0.2"
+log = "0.4"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
