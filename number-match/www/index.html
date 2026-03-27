@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Match</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>N U M B E R &nbsp; M A T C H</h1>
+
+        <div id="controls">
+            <div id="size-select">
+                <button class="size-btn active" data-rows="3">3 Rows</button>
+                <button class="size-btn" data-rows="5">5 Rows</button>
+                <button class="size-btn" data-rows="7">7 Rows</button>
+            </div>
+            <div id="game-actions">
+                <button id="btn-new">New Game</button>
+                <button id="btn-undo">Undo</button>
+                <button id="btn-hint">Hint</button>
+                <button id="btn-add-row">+ Add Row</button>
+            </div>
+        </div>
+
+        <div id="info-bar">
+            <span id="score-display">Score: 0</span>
+            <span id="matches-display">Matches: 0</span>
+            <span id="remaining-display">Left: 0</span>
+            <span id="timer-display">Time: 00:00</span>
+        </div>
+
+        <div id="grid-container"></div>
+
+        <div id="message"></div>
+
+        <div id="no-moves-banner" class="hidden">
+            <span>No moves available!</span>
+            <button id="btn-banner-add">Add Row (-20 pts)</button>
+        </div>
+
+        <div id="stats-section">
+            <button id="btn-toggle-stats">Show Stats</button>
+            <button id="btn-toggle-history">Show History</button>
+            <div id="stats-display" class="hidden"></div>
+            <div id="history-display" class="hidden"></div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
