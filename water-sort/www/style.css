@@ -1,0 +1,246 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a2e;
+    color: #c8d6e5;
+    font-family: "Courier New", Courier, monospace;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+#app {
+    max-width: 960px;
+    width: 100%;
+    text-align: center;
+}
+
+h1 {
+    color: #00d2d3;
+    font-size: 24px;
+    letter-spacing: 4px;
+    margin-bottom: 20px;
+    font-weight: normal;
+}
+
+/* Controls */
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+#difficulty-select,
+#game-actions {
+    display: flex;
+    gap: 6px;
+}
+
+button {
+    background: #16213e;
+    border: 1px solid #576574;
+    color: #c8d6e5;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+button:hover {
+    border-color: #00d2d3;
+    color: #00d2d3;
+}
+
+button.active {
+    border-color: #feca57;
+    color: #feca57;
+}
+
+/* Info bar */
+#info-bar {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #54a0ff;
+}
+
+/* Bottles */
+#bottles-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    min-height: 200px;
+}
+
+.bottle {
+    display: flex;
+    flex-direction: column-reverse;
+    width: 52px;
+    height: 160px;
+    border: 2px solid #576574;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    background: rgba(22, 33, 62, 0.6);
+}
+
+.bottle::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: -2px;
+    right: -2px;
+    height: 6px;
+    border: 2px solid #576574;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    transition: border-color 0.15s;
+}
+
+.bottle:hover {
+    border-color: #00d2d3;
+}
+
+.bottle:hover::before {
+    border-color: #00d2d3;
+}
+
+.bottle.selected {
+    transform: translateY(-12px);
+    border-color: #feca57;
+}
+
+.bottle.selected::before {
+    border-color: #feca57;
+}
+
+.bottle.hint-src {
+    border-color: #00d2d3;
+    box-shadow: 0 0 12px rgba(0, 210, 211, 0.4);
+}
+
+.bottle.hint-src::before {
+    border-color: #00d2d3;
+}
+
+.bottle.hint-dst {
+    border-color: #54a0ff;
+    box-shadow: 0 0 12px rgba(84, 160, 255, 0.4);
+}
+
+.bottle.hint-dst::before {
+    border-color: #54a0ff;
+}
+
+.bottle.pour-src .unit:last-child,
+.bottle.pour-src .unit:nth-last-child(2),
+.bottle.pour-src .unit:nth-last-child(3),
+.bottle.pour-src .unit:nth-last-child(4) {
+    transition: opacity 0.2s;
+}
+
+.unit {
+    width: 100%;
+    height: 25%;
+    transition: all 0.2s;
+}
+
+/* Color palette - 12 distinct colors */
+.unit.color-1  { background: #ee5a24; }
+.unit.color-2  { background: #00d2d3; }
+.unit.color-3  { background: #feca57; }
+.unit.color-4  { background: #54a0ff; }
+.unit.color-5  { background: #a29bfe; }
+.unit.color-6  { background: #fd79a8; }
+.unit.color-7  { background: #00b894; }
+.unit.color-8  { background: #e17055; }
+.unit.color-9  { background: #6c5ce7; }
+.unit.color-10 { background: #b2bec3; }
+.unit.color-11 { background: #fdcb6e; }
+.unit.color-12 { background: #e84393; }
+
+/* Rounded bottom for the bottom unit */
+.unit:first-child {
+    border-radius: 0 0 8px 8px;
+}
+
+/* Message */
+#message {
+    color: #feca57;
+    font-size: 14px;
+    min-height: 22px;
+    margin-bottom: 16px;
+}
+
+#message.win {
+    color: #00d2d3;
+    font-size: 18px;
+}
+
+/* Stats */
+#stats-section {
+    margin-top: 10px;
+}
+
+#stats-section > button {
+    font-size: 13px;
+    margin: 0 4px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#stats-display,
+#history-display {
+    margin-top: 12px;
+    text-align: center;
+}
+
+table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th, td {
+    border: 1px solid #576574;
+    padding: 6px 12px;
+    text-align: center;
+}
+
+th {
+    color: #feca57;
+}
+
+.result-won {
+    color: #00d2d3;
+}
+
+.result-abandoned {
+    color: #ee5a24;
+}
+
+@keyframes pour-up {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-30px); opacity: 0; }
+}
+
+@keyframes pour-down {
+    0% { transform: translateY(-30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
