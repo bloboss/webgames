@@ -1,0 +1,290 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a2e;
+    color: #c8d6e5;
+    font-family: "Courier New", Courier, monospace;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.app {
+    max-width: 1200px;
+    width: 100%;
+}
+
+h1 {
+    text-align: center;
+    color: #00d2d3;
+    font-size: 24px;
+    letter-spacing: 6px;
+    margin-bottom: 20px;
+    font-weight: normal;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.controls button {
+    background: #16213e;
+    border: 1px solid #576574;
+    color: #c8d6e5;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.controls button:hover {
+    border-color: #00d2d3;
+    color: #00d2d3;
+}
+
+.controls button.active {
+    border-color: #feca57;
+    color: #feca57;
+}
+
+/* Game layout */
+.game-area {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+/* Multi-grid: 21x21 CSS grid */
+.multi-grid {
+    display: grid;
+    gap: 0;
+    user-select: none;
+}
+
+.cell-spacer {
+    /* Invisible spacer for inactive grid positions */
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    border: 1px solid #2d3436;
+    transition: background 0.1s;
+    background: #1a1a2e;
+}
+
+.cell:hover {
+    background: #2d3436;
+}
+
+/* Thick borders for 3x3 box edges and board edges */
+.cell.border-right {
+    border-right: 2px solid #c8d6e5;
+}
+
+.cell.border-bottom {
+    border-bottom: 2px solid #c8d6e5;
+}
+
+.cell.border-left-thick {
+    border-left: 2px solid #c8d6e5;
+}
+
+.cell.border-top-thick {
+    border-top: 2px solid #c8d6e5;
+}
+
+/* Overlap zones get a distinct background */
+.cell.overlap {
+    background: #1e2a4a;
+}
+
+.cell.overlap:hover {
+    background: #2a3a5a;
+}
+
+.cell.given {
+    color: #feca57;
+    font-weight: bold;
+}
+
+.cell.user {
+    color: #00d2d3;
+}
+
+.cell.error {
+    color: #ee5a24;
+}
+
+.cell.selected {
+    background: #2d3436;
+    outline: 2px solid #00d2d3;
+    outline-offset: -2px;
+}
+
+.cell.selected.overlap {
+    background: #2a3a5a;
+}
+
+.cell.highlighted {
+    background: #1e272e;
+}
+
+.cell.highlighted.overlap {
+    background: #243050;
+}
+
+.cell.empty {
+    color: #576574;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 200px;
+}
+
+.info-box {
+    border: 1px solid #576574;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.info-box .label {
+    color: #576574;
+    margin-bottom: 4px;
+}
+
+.info-box .value {
+    color: #54a0ff;
+    font-size: 24px;
+}
+
+.info-box .value.small {
+    font-size: 14px;
+    color: #c8d6e5;
+}
+
+/* Numpad */
+.numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 50px);
+    gap: 4px;
+}
+
+.numpad button {
+    background: #16213e;
+    border: 1px solid #576574;
+    color: #c8d6e5;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 20px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.numpad button:hover {
+    border-color: #00d2d3;
+    color: #00d2d3;
+}
+
+.numpad .clear-btn {
+    grid-column: 1 / -1;
+    font-size: 14px;
+}
+
+/* Message */
+.message {
+    text-align: center;
+    color: #feca57;
+    font-size: 14px;
+    min-height: 22px;
+    margin: 16px 0;
+}
+
+.message.win {
+    color: #00d2d3;
+    font-size: 18px;
+}
+
+/* Stats & History */
+.stats-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.stats-section button {
+    background: none;
+    border: 1px solid #576574;
+    color: #c8d6e5;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 13px;
+    padding: 4px 12px;
+    cursor: pointer;
+    margin: 0 4px;
+}
+
+.stats-section button:hover {
+    border-color: #00d2d3;
+    color: #00d2d3;
+}
+
+.stats-table {
+    margin: 12px auto;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.stats-table th,
+.stats-table td {
+    border: 1px solid #576574;
+    padding: 6px 12px;
+    text-align: center;
+}
+
+.stats-table th {
+    color: #feca57;
+}
+
+.history-table {
+    margin: 12px auto;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.history-table th,
+.history-table td {
+    border: 1px solid #576574;
+    padding: 4px 10px;
+    text-align: center;
+}
+
+.history-table th {
+    color: #feca57;
+}
+
+.result-won {
+    color: #00d2d3;
+}
+
+.result-abandoned {
+    color: #ee5a24;
+}
