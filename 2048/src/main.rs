@@ -1,4 +1,4 @@
-mod game;
+mod board;
 mod storage;
 mod app;
 

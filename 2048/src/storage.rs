@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 use web_sys::window;
 use js_sys;
 
-const STATS_KEY: &str = "merge_stats";
-const HISTORY_KEY: &str = "merge_history";
-const SAVE_KEY: &str = "merge_save";
+const STATS_KEY: &str = "2048_stats";
+const HISTORY_KEY: &str = "2048_history";
+const SAVE_KEY: &str = "2048_save";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameStats {
@@ -38,7 +38,7 @@ pub struct HistoryEntry {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SavedGame {
-    pub game: crate::game::GameState,
+    pub board: crate::board::Board,
     pub elapsed: u32,
 }
 
@@ -113,10 +113,10 @@ pub fn record_game(score: u64, highest_tile: u32, merges: u32, time_secs: u32) {
     save_history(&history);
 }
 
-pub fn save_game(game: &crate::game::GameState, elapsed: u32) {
+pub fn save_game(board: &crate::board::Board, elapsed: u32) {
     if let Some(storage) = get_storage() {
         let save = SavedGame {
-            game: game.clone(),
+            board: board.clone(),
             elapsed,
         };
         if let Ok(json) = serde_json::to_string(&save) {

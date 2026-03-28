@@ -1,151 +1,59 @@
 use yew::prelude::*;
 use gloo_timers::callback::Interval;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{KeyboardEvent, TouchEvent};
 
-use crate::board::{Board, Cell, Direction, Rng, TOTAL_CELLS};
+use crate::game::{Cell, GameState, Rng, SPAWN_INTERVAL_MS, TOTAL_CELLS};
 use crate::storage::{self, format_time};
 
 pub enum Msg {
     NewGame,
-    Undo,
-    KeyDown(KeyboardEvent),
-    TouchStart(TouchEvent),
-    TouchEnd(TouchEvent),
-    Tick,
+    CellClick(usize),
+    SpawnTick,
+    TimerTick,
     ToggleStats,
     ToggleHistory,
 }
 
 pub struct App {
-    board: Board,
-    prev_boards: Vec<(Board, u32)>,
+    game: GameState,
     rng: Rng,
+    selected: Option<usize>,
     elapsed: u32,
-    active: bool,
-    game_over: bool,
-    won: bool,
-    keep_playing: bool,
     message: String,
     message_is_good: bool,
     show_stats: bool,
     show_history: bool,
-    touch_start: Option<(f64, f64)>,
-    _timer: Option<Interval>,
-    _key_listener: Option<Closure<dyn Fn(KeyboardEvent)>>,
+    _spawn_timer: Option<Interval>,
+    _clock_timer: Option<Interval>,
 }
 
 impl App {
     fn start_game(&mut self, ctx: &Context<Self>) {
-        self.board = Board::new();
+        self.game = GameState::new();
         self.rng = Rng::from_entropy();
-        self.prev_boards.clear();
+        self.selected = None;
         self.elapsed = 0;
-        self.active = true;
-        self.game_over = false;
-        self.won = false;
-        self.keep_playing = false;
         self.message.clear();
         self.message_is_good = false;
-        self.touch_start = None;
 
-        // Spawn 2 initial tiles (standard 2048)
-        for _ in 0..2 {
-            self.spawn_tile();
+        // Spawn a few initial tiles
+        for _ in 0..5 {
+            self.game.spawn_tile(&mut self.rng);
         }
 
-        let link = ctx.link().clone();
-        self._timer = Some(Interval::new(1000, move || {
-            link.send_message(Msg::Tick);
+        self.start_timers(ctx);
+        storage::save_game(&self.game, self.elapsed);
+    }
+
+    fn start_timers(&mut self, ctx: &Context<Self>) {
+        let link1 = ctx.link().clone();
+        self._spawn_timer = Some(Interval::new(SPAWN_INTERVAL_MS, move || {
+            link1.send_message(Msg::SpawnTick);
         }));
 
-        storage::save_game(&self.board, self.elapsed);
-    }
-
-    fn spawn_tile(&mut self) {
-        let empty = self.board.empty_indices();
-        if empty.is_empty() {
-            return;
-        }
-        let idx = empty[self.rng.range(empty.len())];
-        // 90% chance of 2, 10% chance of 4 (standard 2048 probabilities)
-        let val = if self.rng.range(10) == 0 { 4 } else { 2 };
-        self.board.place(idx, val);
-    }
-
-    fn stop_timer(&mut self) {
-        self._timer = None;
-        self.active = false;
-    }
-
-    fn check_game_over(&mut self) {
-        if self.board.is_game_over() {
-            self.game_over = true;
-            self.stop_timer();
-            storage::record_game(
-                self.board.score,
-                self.board.highest,
-                self.board.merges,
-                self.elapsed,
-            );
-            storage::clear_save();
-            self.message = format!(
-                "Game Over! Score: {} | Highest: {}",
-                self.board.score, self.board.highest
-            );
-            self.message_is_good = false;
-        }
-    }
-
-    fn check_win(&mut self) {
-        if !self.won && !self.keep_playing && self.board.highest >= 2048 {
-            self.won = true;
-            self.message = "You reached 2048! Press any arrow key to keep playing.".to_string();
-            self.message_is_good = true;
-        }
-    }
-
-    fn do_move(&mut self, dir: Direction) -> bool {
-        if self.game_over {
-            return false;
-        }
-
-        // If won but not yet acknowledged, mark as keep_playing
-        if self.won && !self.keep_playing {
-            self.keep_playing = true;
-            self.message.clear();
-        }
-
-        self.prev_boards.push((self.board.clone(), self.elapsed));
-        let changed = self.board.slide(dir);
-
-        if changed {
-            self.spawn_tile();
-            storage::save_game(&self.board, self.elapsed);
-            self.check_win();
-            self.check_game_over();
-            true
-        } else {
-            // No change, remove the undo entry
-            self.prev_boards.pop();
-            false
-        }
-    }
-
-    fn setup_key_listener(&mut self, ctx: &Context<Self>) {
-        let link = ctx.link().clone();
-        let closure = Closure::wrap(Box::new(move |e: KeyboardEvent| {
-            link.send_message(Msg::KeyDown(e));
-        }) as Box<dyn Fn(KeyboardEvent)>);
-
-        if let Some(window) = web_sys::window() {
-            let _ = window.add_event_listener_with_callback(
-                "keydown",
-                closure.as_ref().unchecked_ref(),
-            );
-        }
-        self._key_listener = Some(closure);
+        let link2 = ctx.link().clone();
+        self._clock_timer = Some(Interval::new(1000, move || {
+            link2.send_message(Msg::TimerTick);
+        }));
     }
 }
 
@@ -155,144 +63,87 @@ impl Component for App {
 
     fn create(ctx: &Context<Self>) -> Self {
         let mut app = App {
-            board: Board::new(),
-            prev_boards: Vec::new(),
+            game: GameState::new(),
             rng: Rng::from_entropy(),
+            selected: None,
             elapsed: 0,
-            active: false,
-            game_over: false,
-            won: false,
-            keep_playing: false,
             message: String::new(),
             message_is_good: false,
             show_stats: false,
             show_history: false,
-            touch_start: None,
-            _timer: None,
-            _key_listener: None,
+            _spawn_timer: None,
+            _clock_timer: None,
         };
 
-        // Try to restore saved game
         if let Some(save) = storage::load_game() {
-            app.board = save.board;
+            app.game = save.game;
             app.elapsed = save.elapsed;
-            app.active = true;
-            let link = ctx.link().clone();
-            app._timer = Some(Interval::new(1000, move || {
-                link.send_message(Msg::Tick);
-            }));
-
-            if app.board.is_game_over() {
-                app.game_over = true;
-                app.active = false;
-                app._timer = None;
-                app.message = "Game Over! Start a new game.".to_string();
-            }
-
-            // Check if already won
-            if app.board.highest >= 2048 {
-                app.won = true;
-                app.keep_playing = true;
-            }
+            app.start_timers(ctx);
         } else {
             app.start_game(ctx);
         }
 
-        app.setup_key_listener(ctx);
         app
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::NewGame => {
-                if self.active && !self.game_over {
-                    storage::record_game(
-                        self.board.score,
-                        self.board.highest,
-                        self.board.merges,
-                        self.elapsed,
-                    );
-                }
+                storage::record_game(
+                    self.game.score,
+                    self.game.highest,
+                    self.game.merges,
+                    self.elapsed,
+                );
                 self.start_game(ctx);
                 true
             }
-            Msg::Undo => {
-                if let Some((board, elapsed)) = self.prev_boards.pop() {
-                    self.board = board;
-                    self.elapsed = elapsed;
-                    self.game_over = false;
-                    self.message.clear();
-                    self.message_is_good = false;
-                    if !self.active {
-                        self.active = true;
-                        let link = ctx.link().clone();
-                        self._timer = Some(Interval::new(1000, move || {
-                            link.send_message(Msg::Tick);
-                        }));
+            Msg::CellClick(idx) => {
+                match self.game.cells[idx] {
+                    Cell::Empty => {
+                        self.selected = None;
+                        self.message.clear();
+                        true
                     }
-                    storage::save_game(&self.board, self.elapsed);
-                    true
-                } else {
-                    self.message = "Nothing to undo.".to_string();
-                    self.message_is_good = false;
-                    true
-                }
-            }
-            Msg::KeyDown(e) => {
-                let dir = match e.key().as_str() {
-                    "ArrowUp" | "w" | "W" => Some(Direction::Up),
-                    "ArrowDown" | "s" | "S" => Some(Direction::Down),
-                    "ArrowLeft" | "a" | "A" => Some(Direction::Left),
-                    "ArrowRight" | "d" | "D" => Some(Direction::Right),
-                    _ => None,
-                };
-                if let Some(dir) = dir {
-                    e.prevent_default();
-                    self.do_move(dir);
-                    true
-                } else {
-                    false
-                }
-            }
-            Msg::TouchStart(e) => {
-                if let Some(touch) = e.changed_touches().get(0) {
-                    self.touch_start = Some((touch.client_x() as f64, touch.client_y() as f64));
-                }
-                false
-            }
-            Msg::TouchEnd(e) => {
-                if let Some((sx, sy)) = self.touch_start.take() {
-                    if let Some(touch) = e.changed_touches().get(0) {
-                        let dx = touch.client_x() as f64 - sx;
-                        let dy = touch.client_y() as f64 - sy;
-                        let min_swipe = 30.0;
-
-                        if dx.abs() > dy.abs() && dx.abs() > min_swipe {
-                            if dx > 0.0 {
-                                self.do_move(Direction::Right);
+                    Cell::Value(_) => {
+                        if let Some(prev) = self.selected {
+                            if prev == idx {
+                                // Deselect
+                                self.selected = None;
+                                self.message.clear();
+                            } else if self.game.can_merge(prev, idx) {
+                                if let Some(new_val) = self.game.merge(prev, idx) {
+                                    self.selected = None;
+                                    self.message = format!("Merged into {}!", new_val);
+                                    self.message_is_good = true;
+                                    storage::save_game(&self.game, self.elapsed);
+                                }
                             } else {
-                                self.do_move(Direction::Left);
+                                // Different values - move selection to newly clicked tile
+                                self.selected = Some(idx);
+                                self.message = "Values don't match!".to_string();
+                                self.message_is_good = false;
                             }
-                            return true;
-                        } else if dy.abs() > dx.abs() && dy.abs() > min_swipe {
-                            if dy > 0.0 {
-                                self.do_move(Direction::Down);
-                            } else {
-                                self.do_move(Direction::Up);
-                            }
-                            return true;
+                        } else {
+                            self.selected = Some(idx);
+                            self.message.clear();
                         }
+                        true
                     }
                 }
-                false
             }
-            Msg::Tick => {
-                if self.active {
-                    self.elapsed += 1;
+            Msg::SpawnTick => {
+                if self.game.tile_count() < crate::game::MAX_TILES {
+                    self.game.spawn_tile(&mut self.rng);
+                    storage::save_game(&self.game, self.elapsed);
                     true
                 } else {
                     false
                 }
+            }
+            Msg::TimerTick => {
+                self.elapsed += 1;
+                true
             }
             Msg::ToggleStats => {
                 self.show_stats = !self.show_stats;
@@ -306,26 +157,20 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let ontouchstart = ctx.link().callback(Msg::TouchStart);
-        let ontouchend = ctx.link().callback(Msg::TouchEnd);
-
         html! {
-            <div class="app"
-                 ontouchstart={ontouchstart}
-                 ontouchend={ontouchend}>
-                <h1>{"2 0 4 8"}</h1>
-
+            <div class="app">
+                <h1>{"M E R G E"}</h1>
                 { self.view_controls(ctx) }
                 { self.view_info_bar() }
-                { self.view_grid() }
+                { self.view_grid(ctx) }
 
                 <div class={classes!("message", self.message_is_good.then_some("good"))}>
                     { &self.message }
                 </div>
 
                 <div class="rules">
-                    <p>{"Use arrow keys or WASD to slide tiles. Swipe on mobile."}</p>
-                    <p>{"Tiles with the same value merge when they collide. Reach 2048 to win!"}</p>
+                    <p>{"Click a tile to select it, then click another tile with the same value to merge them."}</p>
+                    <p>{"New tiles spawn automatically. Keep merging to reach higher values!"}</p>
                 </div>
 
                 { self.view_stats_section(ctx) }
@@ -339,7 +184,6 @@ impl App {
         html! {
             <div class="controls">
                 <button onclick={ctx.link().callback(|_| Msg::NewGame)}>{"New Game"}</button>
-                <button onclick={ctx.link().callback(|_| Msg::Undo)}>{"Undo"}</button>
             </div>
         }
     }
@@ -349,15 +193,19 @@ impl App {
             <div class="info-bar">
                 <div class="info-item">
                     <div class="label">{"Score"}</div>
-                    <div class="val">{ self.board.score }</div>
+                    <div class="val">{ self.game.score }</div>
                 </div>
                 <div class="info-item">
                     <div class="label">{"Highest"}</div>
-                    <div class="val">{ if self.board.highest > 0 { self.board.highest.to_string() } else { "--".to_string() } }</div>
+                    <div class="val">{ if self.game.highest > 0 { self.game.highest.to_string() } else { "--".to_string() } }</div>
                 </div>
                 <div class="info-item">
                     <div class="label">{"Merges"}</div>
-                    <div class="val">{ self.board.merges }</div>
+                    <div class="val">{ self.game.merges }</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">{"Tiles"}</div>
+                    <div class="val">{ self.game.tile_count() }</div>
                 </div>
                 <div class="info-item">
                     <div class="label">{"Time"}</div>
@@ -367,31 +215,44 @@ impl App {
         }
     }
 
-    fn view_grid(&self) -> Html {
+    fn view_grid(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div class="grid">
-                { for (0..TOTAL_CELLS).map(|idx| self.view_cell(idx)) }
+                { for (0..TOTAL_CELLS).map(|idx| self.view_cell(ctx, idx)) }
             </div>
         }
     }
 
-    fn view_cell(&self, idx: usize) -> Html {
-        let cell = self.board.cells[idx];
+    fn view_cell(&self, ctx: &Context<Self>, idx: usize) -> Html {
+        let cell = self.game.cells[idx];
+        let is_selected = self.selected == Some(idx);
+        let onclick = ctx.link().callback(move |_| Msg::CellClick(idx));
+
+        // Determine if this cell is a valid merge target for the current selection
+        let is_merge_target = if let Some(sel) = self.selected {
+            sel != idx && self.game.can_merge(sel, idx)
+        } else {
+            false
+        };
 
         match cell {
             Cell::Empty => {
                 html! {
-                    <div class="cell empty"></div>
+                    <div class="cell empty" onclick={onclick}></div>
                 }
             }
             Cell::Value(v) => {
                 let tier = tile_tier(v);
-                let tier_class = format!("cell tile t{}", tier);
+                let mut cls = format!("cell tile t{}", tier);
+                if is_selected {
+                    cls.push_str(" selected");
+                }
+                if is_merge_target {
+                    cls.push_str(" merge-target");
+                }
 
                 html! {
-                    <div class={tier_class}>
-                        { v }
-                    </div>
+                    <div class={cls} onclick={onclick}>{ v }</div>
                 }
             }
         }
@@ -465,20 +326,19 @@ impl App {
     }
 }
 
-/// Map a tile value to a tier number for color styling.
 fn tile_tier(v: u32) -> u32 {
     match v {
-        2 => 1,
-        4 => 2,
-        8 => 3,
-        16 => 4,
-        32 => 5,
-        64 => 6,
-        128 => 7,
-        256 => 8,
-        512 => 9,
-        1024 => 10,
-        2048 => 11,
+        1 => 1,
+        2 => 2,
+        4 => 3,
+        8 => 4,
+        16 => 5,
+        32 => 6,
+        64 => 7,
+        128 => 8,
+        256 => 9,
+        512 => 10,
+        1024 => 11,
         _ => 12,
     }
 }
