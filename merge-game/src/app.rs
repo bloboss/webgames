@@ -1,21 +1,21 @@
 use yew::prelude::*;
 use gloo_timers::callback::Interval;
-use web_sys::DragEvent;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::{KeyboardEvent, TouchEvent};
 
-use crate::board::{Board, Cell, Rng, TOTAL_CELLS};
+use crate::board::{Board, Cell, Direction, Rng, TOTAL_CELLS};
 use crate::storage::{self, format_time};
 
 pub enum Msg {
     NewGame,
     Undo,
-    DragStart(usize),
-    DragOver(DragEvent),
-    Drop(usize),
+    KeyDown(KeyboardEvent),
+    TouchStart(TouchEvent),
+    TouchEnd(TouchEvent),
     Tick,
     ToggleStats,
     ToggleHistory,
-    /// Click-based merge: first click selects, second click on matching tile merges
-    ClickCell(usize),
 }
 
 pub struct App {
@@ -25,13 +25,15 @@ pub struct App {
     elapsed: u32,
     active: bool,
     game_over: bool,
-    dragging: Option<usize>,
-    selected: Option<usize>,
+    won: bool,
+    keep_playing: bool,
     message: String,
     message_is_good: bool,
     show_stats: bool,
     show_history: bool,
+    touch_start: Option<(f64, f64)>,
     _timer: Option<Interval>,
+    _key_listener: Option<Closure<dyn Fn(KeyboardEvent)>>,
 }
 
 impl App {
@@ -42,13 +44,14 @@ impl App {
         self.elapsed = 0;
         self.active = true;
         self.game_over = false;
-        self.dragging = None;
-        self.selected = None;
+        self.won = false;
+        self.keep_playing = false;
         self.message.clear();
         self.message_is_good = false;
+        self.touch_start = None;
 
-        // Spawn 3 initial tiles
-        for _ in 0..3 {
+        // Spawn 2 initial tiles (standard 2048)
+        for _ in 0..2 {
             self.spawn_tile();
         }
 
@@ -66,8 +69,8 @@ impl App {
             return;
         }
         let idx = empty[self.rng.range(empty.len())];
-        // 80% chance of 2, 20% chance of 4
-        let val = if self.rng.range(5) == 0 { 4 } else { 2 };
+        // 90% chance of 2, 10% chance of 4 (standard 2048 probabilities)
+        let val = if self.rng.range(10) == 0 { 4 } else { 2 };
         self.board.place(idx, val);
     }
 
@@ -95,20 +98,54 @@ impl App {
         }
     }
 
-    fn do_merge(&mut self, src: usize, dst: usize) -> bool {
-        if !self.board.can_merge(src, dst) {
+    fn check_win(&mut self) {
+        if !self.won && !self.keep_playing && self.board.highest >= 2048 {
+            self.won = true;
+            self.message = "You reached 2048! Press any arrow key to keep playing.".to_string();
+            self.message_is_good = true;
+        }
+    }
+
+    fn do_move(&mut self, dir: Direction) -> bool {
+        if self.game_over {
             return false;
         }
 
-        self.prev_boards.push((self.board.clone(), self.elapsed));
-        let merged = self.board.merge(src, dst).unwrap();
-        self.spawn_tile();
-        self.message = format!("Merged into {}!", merged);
-        self.message_is_good = true;
+        // If won but not yet acknowledged, mark as keep_playing
+        if self.won && !self.keep_playing {
+            self.keep_playing = true;
+            self.message.clear();
+        }
 
-        storage::save_game(&self.board, self.elapsed);
-        self.check_game_over();
-        true
+        self.prev_boards.push((self.board.clone(), self.elapsed));
+        let changed = self.board.slide(dir);
+
+        if changed {
+            self.spawn_tile();
+            storage::save_game(&self.board, self.elapsed);
+            self.check_win();
+            self.check_game_over();
+            true
+        } else {
+            // No change, remove the undo entry
+            self.prev_boards.pop();
+            false
+        }
+    }
+
+    fn setup_key_listener(&mut self, ctx: &Context<Self>) {
+        let link = ctx.link().clone();
+        let closure = Closure::wrap(Box::new(move |e: KeyboardEvent| {
+            link.send_message(Msg::KeyDown(e));
+        }) as Box<dyn Fn(KeyboardEvent)>);
+
+        if let Some(window) = web_sys::window() {
+            let _ = window.add_event_listener_with_callback(
+                "keydown",
+                closure.as_ref().unchecked_ref(),
+            );
+        }
+        self._key_listener = Some(closure);
     }
 }
 
@@ -124,13 +161,15 @@ impl Component for App {
             elapsed: 0,
             active: false,
             game_over: false,
-            dragging: None,
-            selected: None,
+            won: false,
+            keep_playing: false,
             message: String::new(),
             message_is_good: false,
             show_stats: false,
             show_history: false,
+            touch_start: None,
             _timer: None,
+            _key_listener: None,
         };
 
         // Try to restore saved game
@@ -149,9 +188,17 @@ impl Component for App {
                 app._timer = None;
                 app.message = "Game Over! Start a new game.".to_string();
             }
+
+            // Check if already won
+            if app.board.highest >= 2048 {
+                app.won = true;
+                app.keep_playing = true;
+            }
         } else {
             app.start_game(ctx);
         }
+
+        app.setup_key_listener(ctx);
         app
     }
 
@@ -174,8 +221,6 @@ impl Component for App {
                     self.board = board;
                     self.elapsed = elapsed;
                     self.game_over = false;
-                    self.selected = None;
-                    self.dragging = None;
                     self.message.clear();
                     self.message_is_good = false;
                     if !self.active {
@@ -193,57 +238,53 @@ impl Component for App {
                     true
                 }
             }
-            Msg::DragStart(idx) => {
-                if self.game_over {
-                    return false;
-                }
-                if !self.board.cells[idx].is_empty() {
-                    self.dragging = Some(idx);
-                    self.selected = None;
-                }
-                false
-            }
-            Msg::DragOver(e) => {
-                e.prevent_default();
-                false
-            }
-            Msg::Drop(dst) => {
-                if let Some(src) = self.dragging.take() {
-                    if self.do_merge(src, dst) {
-                        return true;
-                    }
-                    self.message = "Can only merge tiles with the same value.".to_string();
-                    self.message_is_good = false;
-                }
-                true
-            }
-            Msg::ClickCell(idx) => {
-                if self.game_over {
-                    return false;
-                }
-                if self.board.cells[idx].is_empty() {
-                    self.selected = None;
-                    return true;
-                }
-                if let Some(src) = self.selected {
-                    if src == idx {
-                        self.selected = None;
-                        return true;
-                    }
-                    if self.do_merge(src, idx) {
-                        self.selected = None;
-                        return true;
-                    }
-                    // Not a valid merge — select the new cell instead
-                    self.selected = Some(idx);
-                    self.message = "Can only merge tiles with the same value.".to_string();
-                    self.message_is_good = false;
+            Msg::KeyDown(e) => {
+                let dir = match e.key().as_str() {
+                    "ArrowUp" | "w" | "W" => Some(Direction::Up),
+                    "ArrowDown" | "s" | "S" => Some(Direction::Down),
+                    "ArrowLeft" | "a" | "A" => Some(Direction::Left),
+                    "ArrowRight" | "d" | "D" => Some(Direction::Right),
+                    _ => None,
+                };
+                if let Some(dir) = dir {
+                    e.prevent_default();
+                    self.do_move(dir);
                     true
                 } else {
-                    self.selected = Some(idx);
-                    self.message.clear();
-                    true
+                    false
                 }
+            }
+            Msg::TouchStart(e) => {
+                if let Some(touch) = e.changed_touches().get(0) {
+                    self.touch_start = Some((touch.client_x() as f64, touch.client_y() as f64));
+                }
+                false
+            }
+            Msg::TouchEnd(e) => {
+                if let Some((sx, sy)) = self.touch_start.take() {
+                    if let Some(touch) = e.changed_touches().get(0) {
+                        let dx = touch.client_x() as f64 - sx;
+                        let dy = touch.client_y() as f64 - sy;
+                        let min_swipe = 30.0;
+
+                        if dx.abs() > dy.abs() && dx.abs() > min_swipe {
+                            if dx > 0.0 {
+                                self.do_move(Direction::Right);
+                            } else {
+                                self.do_move(Direction::Left);
+                            }
+                            return true;
+                        } else if dy.abs() > dx.abs() && dy.abs() > min_swipe {
+                            if dy > 0.0 {
+                                self.do_move(Direction::Down);
+                            } else {
+                                self.do_move(Direction::Up);
+                            }
+                            return true;
+                        }
+                    }
+                }
+                false
             }
             Msg::Tick => {
                 if self.active {
@@ -265,21 +306,26 @@ impl Component for App {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let ontouchstart = ctx.link().callback(Msg::TouchStart);
+        let ontouchend = ctx.link().callback(Msg::TouchEnd);
+
         html! {
-            <div class="app">
-                <h1>{"M E R G E"}</h1>
+            <div class="app"
+                 ontouchstart={ontouchstart}
+                 ontouchend={ontouchend}>
+                <h1>{"2 0 4 8"}</h1>
 
                 { self.view_controls(ctx) }
                 { self.view_info_bar() }
-                { self.view_grid(ctx) }
+                { self.view_grid() }
 
                 <div class={classes!("message", self.message_is_good.then_some("good"))}>
                     { &self.message }
                 </div>
 
                 <div class="rules">
-                    <p>{"Drag or click a tile onto another tile with the same value to merge them."}</p>
-                    <p>{"Merged tiles double in value. A new tile spawns after each merge."}</p>
+                    <p>{"Use arrow keys or WASD to slide tiles. Swipe on mobile."}</p>
+                    <p>{"Tiles with the same value merge when they collide. Reach 2048 to win!"}</p>
                 </div>
 
                 { self.view_stats_section(ctx) }
@@ -321,55 +367,29 @@ impl App {
         }
     }
 
-    fn view_grid(&self, ctx: &Context<Self>) -> Html {
+    fn view_grid(&self) -> Html {
         html! {
             <div class="grid">
-                { for (0..TOTAL_CELLS).map(|idx| self.view_cell(ctx, idx)) }
+                { for (0..TOTAL_CELLS).map(|idx| self.view_cell(idx)) }
             </div>
         }
     }
 
-    fn view_cell(&self, ctx: &Context<Self>, idx: usize) -> Html {
+    fn view_cell(&self, idx: usize) -> Html {
         let cell = self.board.cells[idx];
-        let is_selected = self.selected == Some(idx);
 
         match cell {
             Cell::Empty => {
-                let ondragover = ctx.link().callback(Msg::DragOver);
-                let ondrop = ctx.link().callback(move |e: DragEvent| {
-                    e.prevent_default();
-                    Msg::Drop(idx)
-                });
                 html! {
-                    <div class="cell empty"
-                         ondragover={ondragover}
-                         ondrop={ondrop}>
-                    </div>
+                    <div class="cell empty"></div>
                 }
             }
             Cell::Value(v) => {
                 let tier = tile_tier(v);
-                let mut classes = vec!["cell", "tile"];
-                let tier_class = format!("t{}", tier);
-                if is_selected {
-                    classes.push("selected");
-                }
-
-                let ondragstart = ctx.link().callback(move |_: DragEvent| Msg::DragStart(idx));
-                let ondragover = ctx.link().callback(Msg::DragOver);
-                let ondrop = ctx.link().callback(move |e: DragEvent| {
-                    e.prevent_default();
-                    Msg::Drop(idx)
-                });
-                let onclick = ctx.link().callback(move |_| Msg::ClickCell(idx));
+                let tier_class = format!("cell tile t{}", tier);
 
                 html! {
-                    <div class={format!("{} {}", classes.join(" "), tier_class)}
-                         draggable="true"
-                         ondragstart={ondragstart}
-                         ondragover={ondragover}
-                         ondrop={ondrop}
-                         onclick={onclick}>
+                    <div class={tier_class}>
                         { v }
                     </div>
                 }
