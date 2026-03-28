@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 use web_sys::window;
 use js_sys;
 
-const STATS_KEY: &str = "merge_stats";
-const HISTORY_KEY: &str = "merge_history";
-const SAVE_KEY: &str = "merge_save";
+const STATS_KEY: &str = "2048_stats";
+const HISTORY_KEY: &str = "2048_history";
+const SAVE_KEY: &str = "2048_save";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameStats {
