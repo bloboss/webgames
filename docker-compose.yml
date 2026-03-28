@@ -1,0 +1,11 @@
+services:
+  webgames:
+    build: .
+    ports:
+      - "8001:8001"  # 2048
+      - "8002:8002"  # Generic Multi-Sudoku
+      - "8003:8003"  # Merge Game
+      - "8004:8004"  # Multi-Sudoku
+      - "8005:8005"  # Number Match
+      - "8006:8006"  # Sudoku
+      - "8007:8007"  # Water Sort
