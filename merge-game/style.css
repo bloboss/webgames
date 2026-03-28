@@ -12,6 +12,7 @@ body {
     justify-content: center;
     padding: 20px;
     min-height: 100vh;
+    touch-action: none;
 }
 
 .app {
@@ -79,12 +80,12 @@ h1 {
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
     margin: 0 auto 16px;
     max-width: 400px;
     background: #0f0f23;
-    padding: 8px;
+    padding: 10px;
     border-radius: 8px;
     border: 2px solid #333;
 }
@@ -94,11 +95,11 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: bold;
     border-radius: 6px;
     user-select: none;
-    transition: transform 0.15s, box-shadow 0.15s;
+    transition: transform 0.1s;
 }
 
 .cell.empty {
@@ -107,24 +108,7 @@ h1 {
 }
 
 .cell.tile {
-    cursor: grab;
     border: none;
-}
-
-.cell.tile:active {
-    cursor: grabbing;
-}
-
-.cell.tile:hover {
-    transform: scale(1.08);
-    z-index: 1;
-}
-
-.cell.selected {
-    transform: scale(1.12);
-    box-shadow: 0 0 14px rgba(0, 212, 255, 0.9);
-    outline: 2px solid #00d4ff;
-    z-index: 2;
 }
 
 /* Tile tiers - each value gets a distinct color */
@@ -138,8 +122,8 @@ h1 {
 .cell.t8  { background: #1abc9c; color: #1a1a2e; }   /* 256 */
 .cell.t9  { background: #e84393; color: #fff; }      /* 512 */
 .cell.t10 { background: #ffd700; color: #1a1a2e; }   /* 1024 */
-.cell.t11 { background: #00d4ff; color: #1a1a2e; font-size: 1rem; } /* 2048 */
-.cell.t12 { background: #ff6b6b; color: #fff; font-size: 0.9rem;
+.cell.t11 { background: #00d4ff; color: #1a1a2e; font-size: 1.1rem; } /* 2048 */
+.cell.t12 { background: #ff6b6b; color: #fff; font-size: 1rem;
             box-shadow: 0 0 12px rgba(255, 107, 107, 0.5); }  /* 4096+ */
 
 .message {
