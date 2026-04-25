@@ -119,7 +119,7 @@ impl Grid {
     }
 
     /// Check if the path between two cells is clear.
-    /// Tries same-row, same-column, and linear (flattened) paths.
+    /// Tries same-row, same-column, diagonal, and linear (flattened) paths.
     fn path_clear(&self, a: usize, b: usize) -> bool {
         let (ra, ca) = self.to_rc(a);
         let (rb, cb) = self.to_rc(b);
@@ -142,6 +142,27 @@ impl Grid {
                 if !self.cells[self.to_idx(r, ca)].is_empty() {
                     return false;
                 }
+            }
+            return true;
+        }
+
+        let row_diff = if ra < rb { rb - ra } else { ra - rb };
+        let col_diff = if ca < cb { cb - ca } else { ca - cb };
+
+        if row_diff == col_diff {
+            // Same diagonal: check diagonal path
+            let dr: isize = if rb > ra { 1 } else { -1 };
+            let dc: isize = if cb > ca { 1 } else { -1 };
+            let mut r = ra as isize + dr;
+            let mut c = ca as isize + dc;
+            let end_r = rb as isize;
+            let end_c = cb as isize;
+            while r != end_r || c != end_c {
+                if !self.cells[self.to_idx(r as usize, c as usize)].is_empty() {
+                    return false;
+                }
+                r += dr;
+                c += dc;
             }
             return true;
         }
@@ -376,5 +397,36 @@ mod tests {
             rows: 1,
         };
         assert!(!grid.is_valid_match(0, 0));
+    }
+
+    #[test]
+    fn test_diagonal_main_match() {
+        // 3 rows; Digit(3) at (0,0)=idx 0 and (2,2)=idx 20; (1,1)=idx 10 is empty
+        let mut cells = vec![Cell::Empty; 27];
+        cells[0] = Cell::Digit(3);
+        cells[20] = Cell::Digit(3);
+        let grid = Grid { cells, rows: 3 };
+        assert!(grid.is_valid_match(0, 20));
+    }
+
+    #[test]
+    fn test_diagonal_anti_match() {
+        // 3 rows; Digit(4) at (2,0)=idx 18 and Digit(6) at (0,2)=idx 2; (1,1)=idx 10 is empty
+        let mut cells = vec![Cell::Empty; 27];
+        cells[18] = Cell::Digit(4);
+        cells[2] = Cell::Digit(6); // 4 + 6 = 10
+        let grid = Grid { cells, rows: 3 };
+        assert!(grid.is_valid_match(2, 18));
+    }
+
+    #[test]
+    fn test_diagonal_blocked() {
+        // 3 rows; Digit(5) at (0,0)=idx 0 and (2,2)=idx 20; blocker Digit(2) at (1,1)=idx 10
+        let mut cells = vec![Cell::Empty; 27];
+        cells[0] = Cell::Digit(5);
+        cells[10] = Cell::Digit(2);
+        cells[20] = Cell::Digit(5);
+        let grid = Grid { cells, rows: 3 };
+        assert!(!grid.is_valid_match(0, 20));
     }
 }
