@@ -20,6 +20,8 @@ pub enum Msg {
     ToggleStats,
     ToggleHistory,
     ToggleHintMode,
+    SelectNumber(u8),
+    ToggleMobilePanel,
 }
 
 pub struct App {
@@ -37,6 +39,8 @@ pub struct App {
     _timer: Option<Interval>,
     hint_mode: bool,
     hints: [[u16; 9]; 9],
+    selected_number: Option<u8>,
+    mobile_panel_open: bool,
 }
 
 impl App {
@@ -57,6 +61,8 @@ impl App {
         self.message_is_win = false;
         self.hints = [[0u16; 9]; 9];
         self.hint_mode = false;
+        self.selected_number = None;
+        self.mobile_panel_open = false;
 
         let link = ctx.link().clone();
         self._timer = Some(Interval::new(1000, move || {
@@ -127,6 +133,8 @@ impl Component for App {
             _timer: None,
             hint_mode: false,
             hints: [[0u16; 9]; 9],
+            selected_number: None,
+            mobile_panel_open: false,
         };
         app.start_game(ctx);
         app
@@ -147,6 +155,7 @@ impl Component for App {
                 self.message = "Board reset.".to_string();
                 self.message_is_win = false;
                 self.hints = [[0u16; 9]; 9];
+                self.selected_number = None;
                 // Restart timer
                 self.elapsed = 0;
                 self.active = true;
@@ -209,6 +218,9 @@ impl Component for App {
             Msg::SelectCell(r, c) => {
                 if self.active {
                     self.selected = Some((r, c));
+                    if let Some(num) = self.selected_number {
+                        ctx.link().send_message(Msg::PlaceNumber(num));
+                    }
                     true
                 } else {
                     false
@@ -322,6 +334,26 @@ impl Component for App {
                 self.hint_mode = !self.hint_mode;
                 true
             }
+            Msg::SelectNumber(n) => {
+                if n == 0 {
+                    self.selected_number = None;
+                    ctx.link().send_message(Msg::PlaceNumber(0));
+                    true
+                } else if self.selected_number == Some(n) {
+                    self.selected_number = None;
+                    true
+                } else {
+                    self.selected_number = Some(n);
+                    if self.selected.is_some() {
+                        ctx.link().send_message(Msg::PlaceNumber(n));
+                    }
+                    true
+                }
+            }
+            Msg::ToggleMobilePanel => {
+                self.mobile_panel_open = !self.mobile_panel_open;
+                true
+            }
         }
     }
 
@@ -330,7 +362,13 @@ impl Component for App {
 
         html! {
             <div class="app" onkeydown={on_keydown} tabindex="0">
-                <h1>{"S U D O K U"}</h1>
+                <div class="header">
+                    <h1>{"S U D O K U"}</h1>
+                    <button class="mobile-panel-toggle"
+                            onclick={ctx.link().callback(|_| Msg::ToggleMobilePanel)}>
+                        {"☰"}
+                    </button>
+                </div>
 
                 { self.view_controls(ctx) }
 
@@ -338,6 +376,8 @@ impl Component for App {
                     { self.view_board(ctx) }
                     { self.view_sidebar(ctx) }
                 </div>
+
+                { self.view_number_bar(ctx) }
 
                 <div class={classes!(
                     "message",
@@ -347,6 +387,8 @@ impl Component for App {
                 </div>
 
                 { self.view_stats_section(ctx) }
+
+                { self.view_mobile_panel(ctx) }
             </div>
         }
     }
@@ -497,18 +539,87 @@ impl App {
                     <div class="value small">{ self.empty_count() }</div>
                 </div>
                 <div class="numpad">
-                    { for (1..=9).map(|n| {
-                        let onclick = ctx.link().callback(move |_| Msg::PlaceNumber(n));
+                    { for (1u8..=9).map(|n| {
+                        let selected = self.selected_number == Some(n);
+                        let onclick = ctx.link().callback(move |_| Msg::SelectNumber(n));
                         html! {
-                            <button onclick={onclick}>{ n }</button>
+                            <button class={classes!(selected.then_some("selected"))}
+                                    onclick={onclick}>{ n }</button>
                         }
                     })}
                     <button class="clear-btn"
-                            onclick={ctx.link().callback(|_| Msg::PlaceNumber(0))}>
+                            onclick={ctx.link().callback(|_| Msg::SelectNumber(0))}>
                         {"Clear"}
                     </button>
                 </div>
             </div>
+        }
+    }
+
+    fn view_number_bar(&self, ctx: &Context<Self>) -> Html {
+        html! {
+            <div class="number-bar">
+                { for (1u8..=9).map(|n| {
+                    let selected = self.selected_number == Some(n);
+                    let onclick = ctx.link().callback(move |_| Msg::SelectNumber(n));
+                    html! {
+                        <button class={classes!(selected.then_some("selected"))}
+                                onclick={onclick}>{ n }</button>
+                    }
+                })}
+                <button class="clear-btn"
+                        onclick={ctx.link().callback(|_| Msg::SelectNumber(0))}>
+                    {"CLR"}
+                </button>
+            </div>
+        }
+    }
+
+    fn view_mobile_panel(&self, ctx: &Context<Self>) -> Html {
+        let backdrop_class = if self.mobile_panel_open {
+            "mobile-panel-backdrop open"
+        } else {
+            "mobile-panel-backdrop"
+        };
+        let panel_class = if self.mobile_panel_open {
+            "mobile-panel open"
+        } else {
+            "mobile-panel"
+        };
+
+        html! {
+            <>
+                <div class={backdrop_class}
+                     onclick={ctx.link().callback(|_| Msg::ToggleMobilePanel)} />
+                <div class={panel_class}>
+                    <button class="mobile-panel-close"
+                            onclick={ctx.link().callback(|_| Msg::ToggleMobilePanel)}>
+                        {"✕ Close"}
+                    </button>
+                    <div class="info-box">
+                        <div class="label">{"Time"}</div>
+                        <div class="value">{ format_time(self.elapsed) }</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">{"Errors"}</div>
+                        <div class="value small">{ self.error_count() }</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="label">{"Remaining"}</div>
+                        <div class="value small">{ self.empty_count() }</div>
+                    </div>
+                    <div class="panel-stats">
+                        <button onclick={ctx.link().callback(|_| Msg::ToggleStats)}>
+                            { if self.show_stats { "Hide Stats" } else { "Show Stats" } }
+                        </button>
+                        <button onclick={ctx.link().callback(|_| Msg::ToggleHistory)}>
+                            { if self.show_history { "Hide History" } else { "Show History" } }
+                        </button>
+                        { if self.show_stats { self.view_stats() } else { html! {} } }
+                        { if self.show_history { self.view_history() } else { html! {} } }
+                    </div>
+                </div>
+            </>
         }
     }
 
