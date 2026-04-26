@@ -19,6 +19,7 @@ pub enum Msg {
     KeyDown(KeyboardEvent),
     ToggleStats,
     ToggleHistory,
+    ToggleHintMode,
 }
 
 pub struct App {
@@ -34,6 +35,8 @@ pub struct App {
     show_stats: bool,
     show_history: bool,
     _timer: Option<Interval>,
+    hint_mode: bool,
+    hints: [[u16; 9]; 9],
 }
 
 impl App {
@@ -52,6 +55,8 @@ impl App {
         self.active = true;
         self.message.clear();
         self.message_is_win = false;
+        self.hints = [[0u16; 9]; 9];
+        self.hint_mode = false;
 
         let link = ctx.link().clone();
         self._timer = Some(Interval::new(1000, move || {
@@ -120,6 +125,8 @@ impl Component for App {
             show_stats: false,
             show_history: false,
             _timer: None,
+            hint_mode: false,
+            hints: [[0u16; 9]; 9],
         };
         app.start_game(ctx);
         app
@@ -139,6 +146,7 @@ impl Component for App {
                 self.selected = None;
                 self.message = "Board reset.".to_string();
                 self.message_is_win = false;
+                self.hints = [[0u16; 9]; 9];
                 // Restart timer
                 self.elapsed = 0;
                 self.active = true;
@@ -157,6 +165,7 @@ impl Component for App {
                         if self.current.is_empty(r, c) {
                             let val = self.solution.get(r, c);
                             self.current.set(r, c, val);
+                            self.hints[r][c] = 0;
                             self.selected = Some((r, c));
                             self.message = format!(
                                 "Hint: {} at row {}, col {}",
@@ -189,6 +198,7 @@ impl Component for App {
                     for c in 0..9 {
                         if self.puzzle.is_empty(r, c) {
                             self.current.set(r, c, self.solution.get(r, c));
+                            self.hints[r][c] = 0;
                         }
                     }
                 }
@@ -210,13 +220,26 @@ impl Component for App {
                 }
                 if let Some((r, c)) = self.selected {
                     if self.puzzle.is_empty(r, c) {
-                        self.current.set(r, c, num);
-                        self.message.clear();
-                        self.message_is_win = false;
-                        if num != 0 {
-                            self.check_win();
+                        if self.hint_mode {
+                            if self.current.is_empty(r, c) {
+                                if num == 0 {
+                                    self.hints[r][c] = 0;
+                                } else {
+                                    self.hints[r][c] ^= 1 << num;
+                                }
+                                return true;
+                            }
+                            return false;
+                        } else {
+                            self.current.set(r, c, num);
+                            self.hints[r][c] = 0;
+                            self.message.clear();
+                            self.message_is_win = false;
+                            if num != 0 {
+                                self.check_win();
+                            }
+                            return true;
                         }
-                        return true;
                     }
                 }
                 false
@@ -295,6 +318,10 @@ impl Component for App {
                 self.show_history = !self.show_history;
                 true
             }
+            Msg::ToggleHintMode => {
+                self.hint_mode = !self.hint_mode;
+                true
+            }
         }
     }
 
@@ -347,6 +374,10 @@ impl App {
                 })}
                 <button onclick={ctx.link().callback(|_| Msg::NewGame)}>{"New Game"}</button>
                 <button onclick={ctx.link().callback(|_| Msg::Reset)}>{"Reset"}</button>
+                <button class={classes!(self.hint_mode.then_some("active"))}
+                        onclick={ctx.link().callback(|_| Msg::ToggleHintMode)}>
+                    { if self.hint_mode { "Notes ON" } else { "Notes" } }
+                </button>
                 <button onclick={ctx.link().callback(|_| Msg::Hint)}>{"Hint"}</button>
                 <button onclick={ctx.link().callback(|_| Msg::Check)}>{"Check"}</button>
                 <button onclick={ctx.link().callback(|_| Msg::Solve)}>{"Solve"}</button>
@@ -396,26 +427,56 @@ impl App {
             classes.push("border-bottom");
         }
 
-        let display = if pv != 0 {
+        let onclick = ctx.link().callback(move |_| Msg::SelectCell(r, c));
+
+        if pv != 0 {
             classes.push("given");
-            pv.to_string()
+            html! {
+                <div class={classes.join(" ")} onclick={onclick}>
+                    { pv.to_string() }
+                </div>
+            }
         } else if cv != 0 {
             if cv != sv {
                 classes.push("error");
             } else {
                 classes.push("user");
             }
-            cv.to_string()
+            html! {
+                <div class={classes.join(" ")} onclick={onclick}>
+                    { cv.to_string() }
+                </div>
+            }
         } else {
-            classes.push("empty");
-            String::new()
-        };
+            let mask = self.hints[r][c];
+            if mask != 0 {
+                classes.push("hints");
+                html! {
+                    <div class={classes.join(" ")} onclick={onclick}>
+                        { Self::view_hints_grid(mask) }
+                    </div>
+                }
+            } else {
+                classes.push("empty");
+                html! {
+                    <div class={classes.join(" ")} onclick={onclick}>
+                    </div>
+                }
+            }
+        }
+    }
 
-        let onclick = ctx.link().callback(move |_| Msg::SelectCell(r, c));
-
+    fn view_hints_grid(mask: u16) -> Html {
         html! {
-            <div class={classes.join(" ")} onclick={onclick}>
-                { display }
+            <div class="hints-grid">
+                { for (1u8..=9).map(|n| {
+                    let visible = (mask >> n) & 1 == 1;
+                    html! {
+                        <span class="hint-num">
+                            { if visible { n.to_string() } else { String::new() } }
+                        </span>
+                    }
+                })}
             </div>
         }
     }
