@@ -12,6 +12,8 @@ pub enum Difficulty {
     Easy,
     Medium,
     Hard,
+    Expert,
+    Master,
 }
 
 impl Difficulty {
@@ -20,6 +22,8 @@ impl Difficulty {
             Difficulty::Easy => "Easy",
             Difficulty::Medium => "Medium",
             Difficulty::Hard => "Hard",
+            Difficulty::Expert => "Expert",
+            Difficulty::Master => "Master",
         }
     }
 
@@ -28,6 +32,8 @@ impl Difficulty {
             Difficulty::Easy => 2,
             Difficulty::Medium => 3,
             Difficulty::Hard => 3,
+            Difficulty::Expert => 4,
+            Difficulty::Master => 4,
         }
     }
 
@@ -36,6 +42,8 @@ impl Difficulty {
             Difficulty::Easy => 8,
             Difficulty::Medium => 14,
             Difficulty::Hard => 22,
+            Difficulty::Expert => 32,
+            Difficulty::Master => 50,
         }
     }
 }
@@ -111,6 +119,8 @@ impl Component for App {
             app.difficulty = match save.difficulty.as_str() {
                 "Easy" => Difficulty::Easy,
                 "Hard" => Difficulty::Hard,
+                "Expert" => Difficulty::Expert,
+                "Master" => Difficulty::Master,
                 _ => Difficulty::Medium,
             };
             app.start_timer(ctx);
@@ -260,6 +270,8 @@ impl App {
                     { mk(Difficulty::Easy) }
                     { mk(Difficulty::Medium) }
                     { mk(Difficulty::Hard) }
+                    { mk(Difficulty::Expert) }
+                    { mk(Difficulty::Master) }
                 </div>
             </div>
         }
