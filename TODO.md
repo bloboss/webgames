@@ -31,13 +31,4 @@ The items below are candidates for future implementation.
 
 ## Hex Puzzles
 
-- [ ] **HexPuzzle** — Sliding/launching puzzle on a hexagonal grid.
-  - The board is a hexagonal grid of hexagon tiles.
-  - Each hex has a fixed movement direction — one of the six cardinal hex directions (one per side).
-  - **Goal:** remove every hex from the board.
-  - **Gameplay loop:**
-    1. The player selects a hex.
-    2. The hex slides in its assigned direction as far as possible within the grid.
-    3. If it reaches the board edge and falls off, it is removed.  
-       If it is blocked before the edge, it snaps back to its original position.
-    4. Repeat until the board is empty.
+- [x] **HexPuzzle** — Sliding/launching puzzle on a hexagonal grid. _(Implemented in `hex-puzzle/`.)_

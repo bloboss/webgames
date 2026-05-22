@@ -11,3 +11,4 @@ The following games are currently implemented in this repository.
 | **Merge Game** | Tile-merging puzzle; merge adjacent identical values to score. |
 | **Number Match** | 9-column grid puzzle — match and clear runs of identical digits. |
 | **Water Sort Puzzle** | Sort colored units into bottles until each bottle holds one color. |
+| **Hex Puzzle** | Launch hex tiles in their fixed direction; remove every hex from the board. |

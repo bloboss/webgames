@@ -59,22 +59,4 @@ Uncover all safe cells on a grid without hitting a mine, guided by numeric neigh
 
 ## Hex Puzzles
 
-### HexPuzzle
-
-A sliding/launching puzzle played on a hexagonal grid.
-
-**Board:** A hex grid of hexagon tiles. Each tile has a fixed, immutable movement direction — one of the six cardinal hex directions (one per side of the hexagon).
-
-**Goal:** Remove every tile from the board.
-
-**Gameplay loop:**
-1. The player clicks/taps a hex to select it.
-2. The hex slides in its assigned direction as far as it can travel within the grid boundaries.
-3. **Falls off the edge** → the tile is removed from the board permanently.  
-   **Blocked before the edge** → the tile snaps back to its original position.
-4. Play continues until the board is empty (win) or no moves can remove any tile (stuck).
-
-**Design notes:**
-- Direction arrows (or visual indicators) on each hex communicate the movement direction to the player.
-- Puzzle design is the key challenge: tile removal order matters because tiles can block each other.
-- Difficulty scales with board size and the intricacy of the dependency chain required to clear all tiles.
+_(All currently listed hex puzzles have been implemented.)_
