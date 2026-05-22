@@ -9,3 +9,4 @@ services:
       - "8005:8005"  # Number Match
       - "8006:8006"  # Sudoku
       - "8007:8007"  # Water Sort
+      - "8008:8008"  # Hex Puzzle
