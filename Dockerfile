@@ -1,5 +1,5 @@
 # Stage 1: Build all games with Rust + Trunk
-FROM rust:1.82-bookworm AS builder
+FROM docker.io/rust:1.95-bookworm AS builder
 
 # Install trunk and wasm target
 RUN cargo install trunk --version 0.21.5 && \
@@ -28,7 +28,7 @@ RUN cd /build/sudoku && trunk build --release
 RUN cd /build/water-sort && trunk build --release
 
 # Stage 2: Serve with nginx
-FROM nginx:alpine
+FROM docker.io/nginx:stable-alpine-slim
 
 # Copy built game assets to nginx
 COPY --from=builder /build/2048/dist /usr/share/nginx/games/2048
