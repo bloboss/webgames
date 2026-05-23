@@ -160,7 +160,7 @@ impl GameState {
 
     /// True if the line from `hex` in direction `dir` (exclusive of the
     /// starting cell) contains only empty cells, all the way off the board.
-    fn path_clear(&self, hex: Hex, dir: Direction) -> bool {
+    pub fn path_clear(&self, hex: Hex, dir: Direction) -> bool {
         let mut cur = hex.step(dir);
         while self.on_board(cur) {
             if !matches!(self.get(cur), Some(Cell::Empty)) {
@@ -169,6 +169,22 @@ impl GameState {
             cur = cur.step(dir);
         }
         true
+    }
+
+    /// Count empty on-board cells along the line from `hex` in direction
+    /// `dir` (exclusive of the starting cell), stopping at the first
+    /// non-empty cell or at the edge of the board.
+    pub fn empty_steps(&self, hex: Hex, dir: Direction) -> i32 {
+        let mut cur = hex.step(dir);
+        let mut n = 0;
+        while self.on_board(cur) {
+            if !matches!(self.get(cur), Some(Cell::Empty)) {
+                return n;
+            }
+            cur = cur.step(dir);
+            n += 1;
+        }
+        n
     }
 
     /// Attempt to play the tile at `hex`. Returns `Move::Removed` if the
