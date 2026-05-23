@@ -1,11 +1,27 @@
 use yew::prelude::*;
-use gloo_timers::callback::Interval;
+use gloo_timers::callback::{Interval, Timeout};
 
 use crate::game::{Cell, Direction, GameState, Hex, Move, Rng};
 use crate::storage::{self, format_time};
 
 const HEX_SIZE: f64 = 36.0;
 const SQRT3: f64 = 1.7320508075688772;
+const EXIT_ANIM_MS: u32 = 280;
+const BUMP_ANIM_MS: u32 = 280;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AnimKind {
+    Exit,
+    Bump,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Anim {
+    hex: Hex,
+    dx: f64,
+    dy: f64,
+    kind: AnimKind,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Difficulty {
@@ -52,6 +68,7 @@ pub enum Msg {
     NewGame,
     SetDifficulty(Difficulty),
     HexClick(Hex),
+    CommitMove(Hex),
     TimerTick,
     ToggleStats,
     ToggleHistory,
@@ -68,7 +85,9 @@ pub struct App {
     show_stats: bool,
     show_history: bool,
     recorded: bool,
+    animating: Option<Anim>,
     _clock: Option<Interval>,
+    _anim_timeout: Option<Timeout>,
 }
 
 impl App {
@@ -82,6 +101,8 @@ impl App {
         self.message_is_good = false;
         self.last_clicked = None;
         self.recorded = false;
+        self.animating = None;
+        self._anim_timeout = None;
         self.start_timer(ctx);
         storage::save_game(&self.game, self.elapsed, self.difficulty.label());
     }
@@ -110,7 +131,9 @@ impl Component for App {
             show_stats: false,
             show_history: false,
             recorded: false,
+            animating: None,
             _clock: None,
+            _anim_timeout: None,
         };
 
         if let Some(save) = storage::load_game() {
@@ -155,10 +178,45 @@ impl Component for App {
                 true
             }
             Msg::HexClick(hex) => {
-                if self.game.is_won() {
+                if self.game.is_won() || self.animating.is_some() {
                     return false;
                 }
+                let dir = match self.game.get(hex) {
+                    Some(Cell::Tile(d)) => d,
+                    _ => {
+                        self.message.clear();
+                        self.last_clicked = None;
+                        return true;
+                    }
+                };
                 self.last_clicked = Some(hex);
+                let (step_dx, step_dy) = dir_pixel_delta(dir);
+                let steps = self.game.empty_steps(hex, dir);
+                let path_clear = self.game.path_clear(hex, dir);
+                let (kind, dist) = if path_clear {
+                    (AnimKind::Exit, (steps + 1) as f64)
+                } else {
+                    (AnimKind::Bump, (steps as f64).max(0.4))
+                };
+                self.animating = Some(Anim {
+                    hex,
+                    dx: step_dx * dist,
+                    dy: step_dy * dist,
+                    kind,
+                });
+                let link = ctx.link().clone();
+                let delay = match kind {
+                    AnimKind::Exit => EXIT_ANIM_MS,
+                    AnimKind::Bump => BUMP_ANIM_MS,
+                };
+                self._anim_timeout = Some(Timeout::new(delay, move || {
+                    link.send_message(Msg::CommitMove(hex));
+                }));
+                true
+            }
+            Msg::CommitMove(hex) => {
+                self.animating = None;
+                self._anim_timeout = None;
                 match self.game.play(hex) {
                     Move::Removed => {
                         if self.game.is_won() {
@@ -345,9 +403,22 @@ impl App {
                 if self.last_clicked == Some(hex) {
                     cls.push_str(" recent");
                 }
+                let mut style: Option<String> = None;
+                if let Some(anim) = self.animating {
+                    if anim.hex == hex {
+                        match anim.kind {
+                            AnimKind::Exit => cls.push_str(" exiting"),
+                            AnimKind::Bump => cls.push_str(" bumping"),
+                        }
+                        style = Some(format!(
+                            "--anim-dx: {:.2}px; --anim-dy: {:.2}px;",
+                            anim.dx, anim.dy
+                        ));
+                    }
+                }
                 let arrow = arrow_path(x, y, dir);
                 html! {
-                    <g class={cls} onclick={onclick}>
+                    <g class={cls} onclick={onclick} style={style}>
                         <polygon class="cell" points={points} />
                         <path class="arrow" d={arrow} />
                     </g>
@@ -422,6 +493,15 @@ impl App {
             </table>
         }
     }
+}
+
+/// Per-step pixel delta when sliding from one hex centre to the next
+/// neighbour in the given direction (pointy-top axial layout).
+fn dir_pixel_delta(dir: Direction) -> (f64, f64) {
+    let (dq, dr) = dir.delta();
+    let dx = HEX_SIZE * SQRT3 * (dq as f64 + dr as f64 / 2.0);
+    let dy = HEX_SIZE * 1.5 * dr as f64;
+    (dx, dy)
 }
 
 /// Pointy-top hex → pixel.

@@ -146,6 +146,32 @@ h1 {
     stroke-width: 3;
 }
 
+.cell-group.exiting {
+    animation: hex-exit 280ms ease-in forwards;
+    pointer-events: none;
+}
+
+.cell-group.bumping {
+    animation: hex-bump 280ms ease-out;
+    pointer-events: none;
+}
+
+@keyframes hex-exit {
+    to {
+        transform: translate(var(--anim-dx, 0), var(--anim-dy, 0));
+        opacity: 0;
+    }
+}
+
+@keyframes hex-bump {
+    50% {
+        transform: translate(var(--anim-dx, 0), var(--anim-dy, 0));
+    }
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
 .arrow {
     stroke: #1a1a2e;
     stroke-width: 3;
