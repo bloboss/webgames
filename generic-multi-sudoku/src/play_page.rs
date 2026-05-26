@@ -332,6 +332,8 @@ impl Component for PlayPage {
                     { self.view_sidebar(ctx) }
                 </div>
 
+                { self.view_number_bar(ctx) }
+
                 <div class={classes!("message", self.message_is_win.then_some("win"))}>
                     { &self.message }
                 </div>
@@ -376,18 +378,18 @@ impl PlayPage {
         let cols = self.current.grid_cols();
         let config = &ctx.props().config;
 
-        // Compute cell size based on grid dimensions
+        // Compute desktop cell size; mobile CSS overrides via --cell-size var.
         let cell_size = if cols > 21 || rows > 21 { 28 } else { 36 };
 
         html! {
             <div class="multi-grid" style={format!(
-                "grid-template-columns: repeat({}, {}px); grid-template-rows: repeat({}, {}px);",
-                cols, cell_size, rows, cell_size
+                "--cell-size: {}px; --grid-cols: {}; --grid-rows: {};",
+                cell_size, cols, rows
             )}>
                 { for (0..rows).flat_map(|gr| {
                     (0..cols).map(move |gc| (gr, gc))
                 }).map(|(gr, gc)| {
-                    self.view_cell(ctx, config, gr, gc, cell_size)
+                    self.view_cell(ctx, config, gr, gc)
                 })}
             </div>
         }
@@ -399,13 +401,10 @@ impl PlayPage {
         config: &PuzzleConfig,
         gr: usize,
         gc: usize,
-        cell_size: usize,
     ) -> Html {
         if !self.current.is_active(gr, gc) {
             return html! {
-                <div class="cell-spacer" style={format!(
-                    "width: {}px; height: {}px;", cell_size, cell_size
-                )}></div>
+                <div class="cell-spacer"></div>
             };
         }
 
@@ -492,11 +491,10 @@ impl PlayPage {
         };
 
         let onclick = ctx.link().callback(move |_| Msg::SelectCell(gr, gc));
-        let font_size = if cell_size < 32 { 14 } else { 16 };
 
         html! {
             <div class={classes.join(" ")}
-                 style={format!("{}font-size: {}px;", tint, font_size)}
+                 style={tint}
                  onclick={onclick}>
                 { display }
             </div>
@@ -530,6 +528,22 @@ impl PlayPage {
                         {"Clear"}
                     </button>
                 </div>
+            </div>
+        }
+    }
+
+    fn view_number_bar(&self, ctx: &Context<Self>) -> Html {
+        // Touch-friendly number bar shown only on mobile (via CSS).
+        html! {
+            <div class="number-bar">
+                { for (1..=9).map(|n| {
+                    let onclick = ctx.link().callback(move |_| Msg::PlaceNumber(n));
+                    html! { <button onclick={onclick}>{ n }</button> }
+                })}
+                <button class="clear-btn"
+                        onclick={ctx.link().callback(|_| Msg::PlaceNumber(0))}>
+                    {"Clear"}
+                </button>
             </div>
         }
     }

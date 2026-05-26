@@ -214,8 +214,7 @@ impl ConfigPage {
             <div class="meta-grid-section">
                 <h3>{"Click to place boards (each board = 3x3 region)"}</h3>
                 <div class="meta-grid" style={format!(
-                    "grid-template-columns: repeat({}, 44px); grid-template-rows: repeat({}, 44px);",
-                    META_GRID_SIZE, META_GRID_SIZE
+                    "--meta-cols: {};", META_GRID_SIZE
                 )}>
                     { for (0..META_GRID_SIZE).flat_map(|mr| {
                         (0..META_GRID_SIZE).map(move |mc| (mr, mc))

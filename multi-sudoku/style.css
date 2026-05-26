@@ -67,11 +67,14 @@ h1 {
     flex-wrap: wrap;
 }
 
-/* Multi-grid: 21x21 CSS grid */
+/* Multi-grid: 21x21 CSS grid. Cell size & dims set via CSS vars from Rust. */
 .multi-grid {
+    --cell-size: 36px;
     display: grid;
     gap: 0;
     user-select: none;
+    grid-template-columns: repeat(var(--grid-cols, 21), var(--cell-size));
+    grid-template-rows: repeat(var(--grid-rows, 21), var(--cell-size));
 }
 
 .cell-spacer {
@@ -287,4 +290,114 @@ h1 {
 
 .result-abandoned {
     color: #ee5a24;
+}
+
+/* Number bar — hidden on desktop, shown on mobile below the grid */
+.number-bar {
+    display: none;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 800px) {
+    body {
+        padding: 6px;
+    }
+
+    h1 {
+        font-size: 16px;
+        letter-spacing: 3px;
+        margin-bottom: 12px;
+    }
+
+    .controls {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .controls button {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+
+    .game-area {
+        gap: 10px;
+    }
+
+    /* Scale cells to fit viewport: 21 cols, ~12px padding */
+    .multi-grid {
+        --cell-size: calc((100vw - 16px) / var(--grid-cols, 21));
+    }
+
+    .cell {
+        font-size: clamp(8px, 2.5vw, 14px);
+    }
+
+    /* Hide desktop sidebar numpad on mobile; show number bar instead */
+    .sidebar {
+        display: none;
+    }
+
+    /* Show compact number bar below the board */
+    .number-bar {
+        display: flex;
+        gap: 3px;
+        justify-content: center;
+        flex-wrap: nowrap;
+        margin: 12px 0;
+        width: 100%;
+    }
+
+    .number-bar button {
+        flex: 1;
+        min-width: 0;
+        background: #16213e;
+        border: 1px solid #576574;
+        color: #c8d6e5;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 18px;
+        padding: 12px 0;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .number-bar .clear-btn {
+        font-size: 11px;
+        flex: 1.3;
+    }
+
+    .stats-section button {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .stats-table,
+    .history-table {
+        font-size: 11px;
+    }
+
+    .stats-table th,
+    .stats-table td,
+    .history-table th,
+    .history-table td {
+        padding: 3px 6px;
+    }
+}
+
+/* Touch devices: neutralize hover */
+@media (hover: none) {
+    .cell:hover {
+        background: #1a1a2e;
+    }
+
+    .cell.overlap:hover {
+        background: #1e2a4a;
+    }
+
+    .controls button:hover,
+    .numpad button:hover,
+    .stats-section button:hover,
+    .number-bar button:hover {
+        border-color: #576574;
+        color: #c8d6e5;
+    }
 }

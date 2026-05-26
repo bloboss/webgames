@@ -212,3 +212,79 @@ h1 {
     text-align: left;
     color: #aaa;
 }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    body {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+        margin-bottom: 12px;
+    }
+
+    .controls {
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+
+    .controls button {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+
+    .info-bar {
+        padding: 8px 4px;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .info-item .label {
+        font-size: 0.6rem;
+    }
+
+    .info-item .val {
+        font-size: 0.95rem;
+    }
+
+    .grid {
+        gap: 3px;
+        padding: 4px;
+        max-width: none;
+    }
+
+    .cell {
+        font-size: 0.7rem;
+    }
+
+    .rules {
+        font-size: 0.7rem;
+    }
+
+    .stats-table,
+    .history-table {
+        font-size: 0.7rem;
+    }
+
+    .stats-table td,
+    .stats-table th,
+    .history-table td,
+    .history-table th {
+        padding: 4px 6px;
+    }
+}
+
+/* Touch devices: avoid hover-stuck scale */
+@media (hover: none) {
+    .cell.tile:hover {
+        transform: none;
+    }
+
+    .controls button:hover,
+    .stats-section > button:hover {
+        background: #16213e;
+    }
+}

@@ -238,3 +238,80 @@ h1 {
     font-size: 0.85rem;
     margin-top: 12px;
 }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    body {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+        margin-bottom: 12px;
+    }
+
+    .controls {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .controls button {
+        padding: 10px 14px;
+        font-size: 0.8rem;
+    }
+
+    .controls .diff {
+        padding: 8px 10px;
+        font-size: 0.7rem;
+    }
+
+    .info-bar {
+        padding: 8px 4px;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .info-item .label {
+        font-size: 0.6rem;
+    }
+
+    .info-item .val {
+        font-size: 0.95rem;
+    }
+
+    .board-wrap {
+        padding: 6px;
+    }
+
+    .rules {
+        font-size: 0.7rem;
+    }
+
+    .stats-table,
+    .history-table {
+        font-size: 0.7rem;
+    }
+
+    .stats-table td,
+    .stats-table th,
+    .history-table td,
+    .history-table th {
+        padding: 4px 6px;
+    }
+}
+
+/* Touch devices: kill hover-stuck filters */
+@media (hover: none) {
+    .cell-group.tile:hover {
+        filter: none;
+    }
+
+    .controls button:hover,
+    .controls .diff:hover,
+    .stats-section > button:hover {
+        background: #16213e;
+        border-color: #00d4ff;
+        color: #00d4ff;
+    }
+}
