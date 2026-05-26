@@ -291,6 +291,8 @@ impl Component for App {
                     { self.view_sidebar(ctx) }
                 </div>
 
+                { self.view_number_bar(ctx) }
+
                 <div class={classes!("message", self.message_is_win.then_some("win"))}>
                     { &self.message }
                 </div>
@@ -331,11 +333,12 @@ impl App {
     }
 
     fn view_grid(&self, ctx: &Context<Self>) -> Html {
-        // Render 21x21 grid; inactive cells are invisible spacers
+        // Render 21x21 grid; inactive cells are invisible spacers.
+        // Cell size and grid dimensions exposed as CSS vars so the mobile
+        // stylesheet can scale cells to the viewport.
         html! {
             <div class="multi-grid" style={format!(
-                "grid-template-columns: repeat({}, 36px); grid-template-rows: repeat({}, 36px);",
-                GRID_SIZE, GRID_SIZE
+                "--grid-cols: {}; --grid-rows: {};", GRID_SIZE, GRID_SIZE
             )}>
                 { for (0..GRID_SIZE).flat_map(|gr| {
                     (0..GRID_SIZE).map(move |gc| (gr, gc))
@@ -485,6 +488,22 @@ impl App {
                         {"Clear"}
                     </button>
                 </div>
+            </div>
+        }
+    }
+
+    fn view_number_bar(&self, ctx: &Context<Self>) -> Html {
+        // Touch-friendly number bar shown only on mobile (via CSS).
+        html! {
+            <div class="number-bar">
+                { for (1..=9).map(|n| {
+                    let onclick = ctx.link().callback(move |_| Msg::PlaceNumber(n));
+                    html! { <button onclick={onclick}>{ n }</button> }
+                })}
+                <button class="clear-btn"
+                        onclick={ctx.link().callback(|_| Msg::PlaceNumber(0))}>
+                    {"Clear"}
+                </button>
             </div>
         }
     }

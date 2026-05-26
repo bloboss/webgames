@@ -216,3 +216,103 @@ h1 {
 
 .result-won { color: #00d2d3; }
 .result-abandoned { color: #ee5a24; }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    body {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 18px;
+        letter-spacing: 3px;
+        margin-bottom: 14px;
+    }
+
+    .controls {
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .controls button {
+        padding: 9px 12px;
+        font-size: 13px;
+    }
+
+    .info-bar {
+        gap: 8px;
+        margin-bottom: 14px;
+        font-size: 12px;
+    }
+
+    .info-item {
+        padding: 6px 10px;
+    }
+
+    .info-item .label {
+        font-size: 10px;
+    }
+
+    .info-item .val {
+        font-size: 15px;
+    }
+
+    /* Shrink tubes so more fit per row */
+    .tubes {
+        gap: 8px;
+        min-height: 0;
+    }
+
+    .tube {
+        width: 42px;
+        height: 144px;
+        padding: 3px;
+        gap: 3px;
+    }
+
+    .cube {
+        height: 30px;
+        border-radius: 3px;
+    }
+
+    .tube.selected {
+        transform: translateY(-6px);
+    }
+
+    .stats-table,
+    .history-table {
+        font-size: 11px;
+    }
+
+    .stats-table th,
+    .stats-table td,
+    .history-table th,
+    .history-table td {
+        padding: 4px 6px;
+    }
+}
+
+/* Even narrower viewports — pack tubes tighter */
+@media (max-width: 380px) {
+    .tube {
+        width: 36px;
+        height: 124px;
+    }
+
+    .cube {
+        height: 26px;
+    }
+}
+
+/* Touch devices: neutralize hover effects */
+@media (hover: none) {
+    .tube:hover {
+        border-color: #576574;
+    }
+
+    .controls button:hover,
+    .stats-section button:hover {
+        border-color: #576574;
+        color: #c8d6e5;
+    }
+}

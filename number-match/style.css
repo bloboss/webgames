@@ -216,3 +216,77 @@ h1 {
 .result-abandoned {
     color: #e74c3c;
 }
+
+/* ===== Mobile ===== */
+@media (max-width: 640px) {
+    body {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+    }
+
+    .controls {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .controls button {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+    }
+
+    .info-bar {
+        padding: 8px 4px;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .info-item .label {
+        font-size: 0.6rem;
+    }
+
+    .info-item .val {
+        font-size: 0.95rem;
+    }
+
+    .grid {
+        gap: 2px;
+        max-width: none;
+    }
+
+    .cell {
+        font-size: 1rem;
+    }
+
+    .rules {
+        font-size: 0.7rem;
+    }
+
+    .stats-table,
+    .history-table {
+        font-size: 0.7rem;
+    }
+
+    .stats-table td,
+    .stats-table th,
+    .history-table td,
+    .history-table th {
+        padding: 4px 6px;
+    }
+}
+
+/* Touch devices: avoid hover-stuck scale */
+@media (hover: none) {
+    .cell:hover:not(.empty) {
+        transform: none;
+    }
+
+    .controls button:hover,
+    .stats-section > button:hover {
+        background: #16213e;
+    }
+}

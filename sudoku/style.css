@@ -480,3 +480,21 @@ h1 {
         display: flex;
     }
 }
+
+/* Touch devices: neutralize hover */
+@media (hover: none) {
+    .cell:hover {
+        background: transparent;
+    }
+
+    .controls button:hover,
+    .numpad button:hover,
+    .stats-section button:hover,
+    .number-bar button:hover,
+    .mobile-panel-toggle:hover,
+    .mobile-panel-close:hover,
+    .panel-stats button:hover {
+        border-color: #576574;
+        color: #c8d6e5;
+    }
+}
